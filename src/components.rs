@@ -79,6 +79,7 @@ impl DynamicObject {
 pub struct Force {
     pub magnitude: f32,
     pub angle: f32,
+    pub(crate) color: Option<Color>,
 }
 impl Force {
     pub(crate) fn from_x_and_y(x: f32, y: f32) -> Self {

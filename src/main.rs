@@ -48,7 +48,16 @@ fn main() {
 }
 
 fn setup_world(mut commands: Commands) {
-    commands.spawn((Camera2d, MainCamera));
+    commands.spawn((
+        Camera2d,
+        MainCamera,
+        OrthographicProjection {
+            scaling_mode: bevy::render::camera::ScalingMode::FixedVertical {
+                viewport_height: 1000.,
+            },
+            ..OrthographicProjection::default_2d()
+        },
+    ));
     commands.spawn((
         Shape::Rect(10000.0, 50.),
         Transform::from_xyz(0., -500.0, 0.),
@@ -81,27 +90,23 @@ fn apply_velocity(
 ) {
     for (mut transform, dynamic_object) in &mut dynamic_objects {
         transform.translation +=
-            dynamic_object.velocity.extend(0.) * time.delta_secs() * Vec3::splat(2.0);
+            dynamic_object.velocity.extend(0.) * time.delta_secs() * Vec3::splat(/*2.0*/ 0.1);
     }
 }
 
-fn apply_forces(mut dynamic_objects: Query<&mut DynamicObject>) {
-    for mut dynamic_object in &mut dynamic_objects {
+fn apply_forces(mut dynamic_objects: Query<(&mut DynamicObject, &Transform)>, mut gizmos: Gizmos) {
+    for (mut dynamic_object, transform) in &mut dynamic_objects {
         let mut additional_velocity = Vec2::ZERO;
         for force in &dynamic_object.forces {
             let magnitude = force.magnitude / dynamic_object.mass;
             let acceleration_vector =
                 Vec2::new(magnitude * cos(force.angle), magnitude * sin(force.angle));
             additional_velocity += acceleration_vector;
+            gizmos.arrow_2d(transform.translation.xy(), transform.translation.xy() + (acceleration_vector), Color::srgb(0., 0., 1.));
         }
         let last_vel = dynamic_object.velocity.length();
+        gizmos.arrow_2d(transform.translation.xy(), transform.translation.xy() + (additional_velocity), Color::srgb(0., 1., 1.));
         dynamic_object.velocity += additional_velocity;
-        if dynamic_object.velocity.length() - last_vel > 0.0 {
-            // eprintln!("ACCELERATING");
-        }
-        if dynamic_object.velocity.length() - last_vel < 0.0 {
-            eprintln!("DECELERATING");
-        }
     }
 }
 
@@ -145,6 +150,12 @@ fn normal_force(
                     .clone();
                 let delta = (main_translation - other_closest_point).normalize_or_zero();
                 let delta_angle = delta.to_angle();
+                    gizmos.arrow_2d(
+                        main_translation,
+                        main_translation + Vec2::new(cos(delta_angle), sin(delta_angle)) * Vec2::splat(50.0),
+                            // + (-1.5 * opposing_velocity_magnitude * mass))),
+                        Color::srgb(0., 0., 0.),
+                    );
                 // objects[i].1.translation += (Vec2::splat(0.1) * delta).extend(0.);
 
                 if let Some(dynamic_object) = &mut objects[i].0 {
@@ -165,23 +176,28 @@ fn normal_force(
                         mag
                     };
 
-                    // gizmos.arrow_2d(
-                    //     main_translation,
-                    //     main_translation
-                    //         + Vec2::new(cos(delta_angle), sin(delta_angle))
-                    //             * -Vec2::splat(50. * opposing_force_magnitude),
-                    //     Color::srgb(0., 1., 0.),
-                    // );
 
                     // dynamic_object.velocity = Vec2::ZERO;
-                    eprintln!("{}", opposing_force_magnitude);
+                    // eprintln!("{}", opposing_force_magnitude);
 
                     let mass = dynamic_object.mass;
                     dynamic_object.forces.push(Force {
                         magnitude: (-opposing_force_magnitude
                             + (-1.5 * opposing_velocity_magnitude * mass)),
                         angle: delta_angle,
+                        color: Some(
+
+                        Color::srgb(0., 1., 0.)
+                        ),
                     });
+                    // gizmos.arrow_2d( main_translation,
+                    //     main_translation
+                    //         + Vec2::new(cos(delta_angle), sin(delta_angle))
+                    //             * Vec2::splat((-opposing_force_magnitude)),
+                    //         // + (-1.5 * opposing_velocity_magnitude * mass))),
+                    //     Color::srgb(0., 1., 0.),
+                    // );
+
                     // let opposing_force_magnitude = {
                     //     let mut magnitude = 0.;
                     //     for force in &dynamic_object.forces {
@@ -202,15 +218,15 @@ fn normal_force(
                             atan2(dynamic_object.velocity.y, dynamic_object.velocity.x);
                         cos(velocity_angle)
                     };
-                    dynamic_object.forces.push(Force {
-                        magnitude: (if velocity_along_tangent_sign > 0.5 {
-                            velocity_along_tangent_sign
-                        } else {
-                            0.
-                        }) * normal_force
-                            * 0.15,
-                        angle: perpendicular_angle,
-                    });
+                    // dynamic_object.forces.push(Force {
+                    //     magnitude: (if velocity_along_tangent_sign > 0.5 {
+                    //         velocity_along_tangent_sign
+                    //     } else {
+                    //         0.
+                    //     }) * normal_force
+                    //         * 0.15,
+                    //     angle: perpendicular_angle,
+                    // });
                     // gizmos.arrow_2d(
                     //     main_translation,
                     //     main_translation
