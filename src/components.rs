@@ -1,22 +1,96 @@
-use bevy::prelude::*;
-use components::Shape;
+use bevy::{
+    math::bounding::{Aabb2d, BoundingCircle, BoundingVolume, IntersectsVolume},
+    prelude::*,
+};
+use ops::atan2;
 
-mod components;
-
-fn main() {
-    App::new().add_systems(Startup, setup_world).add_systems(Update, render_shapes).add_plugins(DefaultPlugins).run();
+#[derive(Debug, Component)]
+pub enum Shape {
+    Circle(f32),
+    Rect(f32, f32),
 }
 
-fn setup_world(mut commands: Commands) {
-    commands.spawn(Camera2d);
-    commands.spawn(Shape::Circle(5.0));
-}
-
-fn render_shapes(shapes: Query<(Entity,&Shape), Added<Shape>>, mut commands: Commands) {
-    for ((entity, shape)) in &shapes {
-        let ent = commands.entity(entity);        
+impl Shape {
+    pub fn intersects(&self, position: Vec2, other: &Self, other_position: Vec2) -> bool {
+        match self {
+            Shape::Circle(radius) => {
+                let a = BoundingCircle::new(position, *radius);
+                match other {
+                    Shape::Circle(radius) => {
+                        a.intersects(&BoundingCircle::new(other_position, *radius))
+                    }
+                    Shape::Rect(width, height) => a.intersects(&Aabb2d::new(
+                        other_position,
+                        Vec2::new(width / 2.0, height / 2.0),
+                    )),
+                }
+            }
+            Shape::Rect(width, height) => {
+                let a = Aabb2d::new(position, Vec2::new(width / 2.0, height / 2.0));
+                match other {
+                    Shape::Circle(radius) => {
+                        a.intersects(&BoundingCircle::new(other_position, *radius))
+                    }
+                    Shape::Rect(width, height) => a.intersects(&Aabb2d::new(
+                        other_position,
+                        Vec2::new(width / 2.0, height / 2.0),
+                    )),
+                }
+            }
+        }
     }
 
+    pub(crate) fn closest_point(
+        &self,
+        position: Vec2,
+        other: &Shape,
+        other_position: Vec2,
+    ) -> Vec2 {
+        match self {
+            Shape::Circle(radius) => {
+                let a = BoundingCircle::new(position, *radius);
+                a.closest_point(other_position)
+            }
+            Shape::Rect(width, height) => {
+                let a = Aabb2d::new(position, Vec2::new(width / 2.0, height / 2.0));
+                a.closest_point(other_position)
+            }
+        }
+    }
 }
 
+#[derive(Debug, Component)]
+pub struct DynamicObject {
+    pub velocity: Vec2,
+    pub mass: f32,
+    pub forces: Vec<Force>,
+}
+impl DynamicObject {
+    pub fn new(mass: f32) -> Self {
+        Self {
+            velocity: Vec2::default(),
+            forces: Vec::default(),
+            mass,
+        }
+    }
+}
 
+#[derive(Debug, Component, Clone, Copy)]
+pub struct Force {
+    pub magnitude: f32,
+    pub angle: f32,
+}
+impl Force {
+    pub(crate) fn from_x_and_y(x: f32, y: f32) -> Self {
+        Self {
+            magnitude: (x.powi(2) + y.powi(2)).sqrt(),
+            angle: atan2(y, x),
+        }
+    }
+    pub(crate) fn from_magnitude_and_angle(magnitude: f32, angle: f32) -> Self {
+        Self { magnitude, angle }
+    }
+}
+
+#[derive(Debug, Component)]
+pub struct StaticObject {}
