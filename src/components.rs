@@ -82,14 +82,23 @@ pub struct Force {
     pub(crate) color: Option<Color>,
 }
 impl Force {
-    pub(crate) fn from_x_and_y(x: f32, y: f32) -> Self {
+    pub(crate) fn from_x_and_y(x: f32, y: f32, color: Option<Color>) -> Self {
         Self {
             magnitude: (x.powi(2) + y.powi(2)).sqrt(),
             angle: atan2(y, x),
+            color, // color:
         }
     }
-    pub(crate) fn from_magnitude_and_angle(magnitude: f32, angle: f32) -> Self {
-        Self { magnitude, angle }
+    pub(crate) fn from_magnitude_and_angle(
+        magnitude: f32,
+        angle: f32,
+        color: Option<Color>,
+    ) -> Self {
+        Self {
+            magnitude,
+            angle,
+            color,
+        }
     }
 }
 

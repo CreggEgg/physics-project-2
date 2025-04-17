@@ -102,10 +102,10 @@ fn apply_forces(mut dynamic_objects: Query<(&mut DynamicObject, &Transform)>, mu
             let acceleration_vector =
                 Vec2::new(magnitude * cos(force.angle), magnitude * sin(force.angle));
             additional_velocity += acceleration_vector;
-            gizmos.arrow_2d(transform.translation.xy(), transform.translation.xy() + (acceleration_vector), Color::srgb(0., 0., 1.));
+            // gizmos.arrow_2d(transform.translation.xy(), transform.translation.xy() + (acceleration_vector), force.color.unwrap_or(Color::srgb(0., 0., 1.)));
         }
         let last_vel = dynamic_object.velocity.length();
-        gizmos.arrow_2d(transform.translation.xy(), transform.translation.xy() + (additional_velocity), Color::srgb(0., 1., 1.));
+        // gizmos.arrow_2d(transform.translation.xy(), transform.translation.xy() + (additional_velocity), Color::srgb(1., 1., 1.));
         dynamic_object.velocity += additional_velocity;
     }
 }
@@ -118,9 +118,11 @@ fn empty_forces(mut dynamic_objects: Query<&mut DynamicObject>) {
 fn apply_gravity(mut dynamic_objects: Query<&mut DynamicObject>) {
     for mut dynamic_object in &mut dynamic_objects {
         let mass = dynamic_object.mass;
-        dynamic_object
-            .forces
-            .push(Force::from_x_and_y(0.0, -9.8 * mass));
+        dynamic_object.forces.push(Force::from_x_and_y(
+            0.0,
+            -9.8 * mass,
+            Some(Color::srgb_u8(199, 165, 14)),
+        ));
     }
 }
 fn normal_force(
@@ -148,14 +150,15 @@ fn normal_force(
                     .2
                     .closest_point(other_translation, objects[i].2, main_translation)
                     .clone();
-                let delta = (main_translation - other_closest_point).normalize_or_zero();
+                let delta = (main_translation - other_closest_point).try_normalize().unwrap_or((main_translation - other_translation).normalize_or_zero());
                 let delta_angle = delta.to_angle();
-                    gizmos.arrow_2d(
-                        main_translation,
-                        main_translation + Vec2::new(cos(delta_angle), sin(delta_angle)) * Vec2::splat(50.0),
-                            // + (-1.5 * opposing_velocity_magnitude * mass))),
-                        Color::srgb(0., 0., 0.),
-                    );
+                gizmos.arrow_2d(
+                    main_translation,
+                    main_translation
+                        + Vec2::new(cos(delta_angle), sin(delta_angle)) * Vec2::splat(50.0),
+                    // + (-1.5 * opposing_velocity_magnitude * mass))),
+                    Color::srgb(0., 0., 0.),
+                );
                 // objects[i].1.translation += (Vec2::splat(0.1) * delta).extend(0.);
 
                 if let Some(dynamic_object) = &mut objects[i].0 {
@@ -164,6 +167,13 @@ fn normal_force(
                         for force in &dynamic_object.forces {
                             let adjusted_angle = force.angle - delta_angle;
                             let mag = cos(adjusted_angle) * force.magnitude;
+                            gizmos.arrow_2d(
+                                main_translation,
+                                main_translation
+                                    + Vec2::new(cos(delta_angle), sin(delta_angle))
+                                        * Vec2::splat(mag),
+                                Color::srgb_u8(14, 32, 199),
+                            );
                             magnitude += mag;
                         }
                         magnitude
@@ -176,27 +186,22 @@ fn normal_force(
                         mag
                     };
 
-
                     // dynamic_object.velocity = Vec2::ZERO;
                     // eprintln!("{}", opposing_force_magnitude);
 
                     let mass = dynamic_object.mass;
-                    dynamic_object.forces.push(Force {
-                        magnitude: (-opposing_force_magnitude
+                    dynamic_object.forces.push(Force::from_magnitude_and_angle(
+                        (-opposing_force_magnitude + (-/*opposing_force_magnitude.signum() * */1.5 * opposing_velocity_magnitude/* .abs() */* mass)),
+                        delta_angle,
+                        Some(Color::srgb_u8(199, 14, 187)),
+                    ));
+                    gizmos.arrow_2d( main_translation,
+                        main_translation
+                            + Vec2::new(cos(delta_angle), sin(delta_angle))
+                                * Vec2::splat((-opposing_force_magnitude)
                             + (-1.5 * opposing_velocity_magnitude * mass)),
-                        angle: delta_angle,
-                        color: Some(
-
-                        Color::srgb(0., 1., 0.)
-                        ),
-                    });
-                    // gizmos.arrow_2d( main_translation,
-                    //     main_translation
-                    //         + Vec2::new(cos(delta_angle), sin(delta_angle))
-                    //             * Vec2::splat((-opposing_force_magnitude)),
-                    //         // + (-1.5 * opposing_velocity_magnitude * mass))),
-                    //     Color::srgb(0., 1., 0.),
-                    // );
+                        Color::srgb(0., 1., 0.),
+                    );
 
                     // let opposing_force_magnitude = {
                     //     let mut magnitude = 0.;
@@ -218,15 +223,16 @@ fn normal_force(
                             atan2(dynamic_object.velocity.y, dynamic_object.velocity.x);
                         cos(velocity_angle)
                     };
-                    // dynamic_object.forces.push(Force {
-                    //     magnitude: (if velocity_along_tangent_sign > 0.5 {
-                    //         velocity_along_tangent_sign
-                    //     } else {
-                    //         0.
-                    //     }) * normal_force
-                    //         * 0.15,
-                    //     angle: perpendicular_angle,
-                    // });
+                    dynamic_object.forces.push(Force::from_magnitude_and_angle(
+                        (if velocity_along_tangent_sign > 0.5 {
+                            velocity_along_tangent_sign
+                        } else {
+                            0.
+                        }) * normal_force
+                            * 0.15,
+                        perpendicular_angle,
+                        Some(Color::srgb_u8(199, 14, 187))
+                    ));
                     // gizmos.arrow_2d(
                     //     main_translation,
                     //     main_translation
