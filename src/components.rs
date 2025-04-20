@@ -1,5 +1,5 @@
 use bevy::{
-    math::bounding::{Aabb2d, BoundingCircle, BoundingVolume, IntersectsVolume},
+    math::bounding::{Aabb2d, BoundingCircle, IntersectsVolume},
     prelude::*,
 };
 use ops::atan2;
@@ -43,7 +43,7 @@ impl Shape {
     pub(crate) fn closest_point(
         &self,
         position: Vec2,
-        other: &Shape,
+        _other: &Shape,
         other_position: Vec2,
     ) -> Vec2 {
         match self {

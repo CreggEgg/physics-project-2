@@ -68,7 +68,7 @@ fn render_shapes(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    for ((entity, shape)) in &shapes {
+    for (entity, shape) in &shapes {
         let mesh = meshes.add(match shape {
             Shape::Circle(radius) => Into::<Mesh>::into(Circle::new(*radius)),
             Shape::Rect(width, height) => Rectangle::new(*width, *height).into(),
@@ -104,7 +104,7 @@ fn apply_forces(mut dynamic_objects: Query<(&mut DynamicObject, &Transform)>, mu
                 force.color.unwrap_or(Color::srgb(0., 0., 1.)),
             );
         }
-        let last_vel = dynamic_object.velocity.length();
+        // let last_vel = dynamic_object.velocity.length();
         // gizmos.arrow_2d(transform.translation.xy(), transform.translation.xy() + (additional_velocity), Color::srgb(1., 1., 1.));
         dynamic_object.velocity += additional_velocity;
     }
@@ -127,11 +127,11 @@ fn apply_gravity(mut dynamic_objects: Query<&mut DynamicObject>) {
 }
 fn normal_force(
     mut objects: Query<(Option<&mut DynamicObject>, &mut Transform, &Shape)>,
-    mut gizmos: Gizmos,
+    // gizmos: Gizmos,
 ) {
     let mut objects: Vec<_> = objects.iter_mut().collect();
     for i in 0..objects.len() {
-        if let None = objects[i].0 {
+        if objects[i].0.is_none() {
             continue;
         }
         'a: for j in 0..objects.len() {
@@ -146,11 +146,11 @@ fn normal_force(
                     .2
                     .intersects(main_translation, objects[j].2, other_translation);
             if intersects {
-                let other_closest_point = objects[j]
-                    .2
-                    .closest_point(other_translation, objects[i].2, main_translation)
-                    .clone();
-                let delta_not_normalized = (main_translation - other_closest_point);
+                let other_closest_point =
+                    objects[j]
+                        .2
+                        .closest_point(other_translation, objects[i].2, main_translation);
+                let delta_not_normalized = main_translation - other_closest_point;
                 let delta = (main_translation - other_closest_point)
                     .try_normalize()
                     .unwrap_or((main_translation - other_translation).normalize_or_zero());
@@ -181,18 +181,18 @@ fn normal_force(
                         }
                         magnitude
                     };
-                    let opposing_velocity_magnitude = {
-                        let velocity_magnitude = dynamic_object.velocity.length();
-                        let velocity_angle =
-                            atan2(dynamic_object.velocity.y, dynamic_object.velocity.x);
-                        let mag = cos(velocity_angle - delta_angle) * velocity_magnitude;
-                        mag
-                    };
+                    // let opposing_velocity_magnitude = {
+                    //     let velocity_magnitude = dynamic_object.velocity.length();
+                    //     let velocity_angle =
+                    //         atan2(dynamic_object.velocity.y, dynamic_object.velocity.x);
+                    //
+                    //     cos(velocity_angle - delta_angle) * velocity_magnitude
+                    // };
 
                     // dynamic_object.velocity = Vec2::ZERO;
                     // eprintln!("{}", opposing_force_magnitude);
 
-                    let mass = dynamic_object.mass;
+                    // let mass = dynamic_object.mass;
                     {
                         let perpendicular_angle = delta_angle/*  - PI / 2. */;
 
@@ -215,7 +215,7 @@ fn normal_force(
                         // );
                         let adjusted_angle =
                             -({ velocity_angle - perpendicular_angle }) + perpendicular_angle;
-                        let mut new_mag = -velocity_mag * BOUNCINESS;
+                        let new_mag = -velocity_mag * BOUNCINESS;
                         // if new_mag <= 100.0 {
                         //     new_mag = 0.;
                         // }
@@ -234,7 +234,7 @@ fn normal_force(
                         // );
                     };
                     dynamic_object.forces.push(Force::from_magnitude_and_angle(
-                        (-opposing_force_magnitude /*+  (-/*opposing_force_magnitude.signum() * */1.5 * opposing_velocity_magnitude/* .abs() */* mass) */),
+                        -opposing_force_magnitude,
                         delta_angle,
                         Some(Color::srgb_u8(199, 14, 187)),
                     ));
@@ -249,7 +249,7 @@ fn normal_force(
                     //     main_translation + adjustment_vec * 10.,
                     //     Color::srgb_u8(255, 255, 255),
                     // );
-                    dynamic_object_transform.translation += (adjustment_vec.extend(0.) * 0.125);
+                    dynamic_object_transform.translation += adjustment_vec.extend(0.) * 0.125;
                     // gizmos.arrow_2d(
                     //     main_translation,
                     //     main_translation
@@ -416,8 +416,7 @@ fn spring_constraints(
                 .find(|(it, _, _, _)| *it == spring_constraint.other)
                 .unwrap()
                 .1
-                .translation
-                .clone();
+                .translation;
             let current_delta = objects[i].1.translation - other_translation;
             let distance_from_target = spring_constraint.length - current_delta.length();
             objects[i].2.forces.push(Force::from_magnitude_and_angle(
