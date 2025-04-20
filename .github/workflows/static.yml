@@ -40,7 +40,7 @@ jobs:
       - name: Build rust
         run: cargo build --target wasm32-unknown-unknown
       - name: Wasm bindgen
-        run: wasm-bindgen --no-typescript --target web --out-dir ./out/ --out-name "physics-project" .\target\wasm32-unknown-unknown\debug\physics-project.wasm
+        run: wasm-bindgen --no-typescript --target web --out-dir ./out/ --out-name "physics-project" ./target/wasm32-unknown-unknown/debug/physics-project.wasm
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
