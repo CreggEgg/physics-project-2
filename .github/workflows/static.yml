@@ -34,7 +34,7 @@ jobs:
       - name: Install rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
       - name: Rust install toolchain
-        uses: rustup target install wasm32-unknown-unknown
+        run: rustup target install wasm32-unknown-unknown
       - name: Build rust
         run: cargo build --target wasm32-unknown-unknown
       - name: Wasm bindgen
