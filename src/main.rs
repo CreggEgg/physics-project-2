@@ -1,13 +1,6 @@
 use std::f32::consts::PI;
 
-use bevy::{
-    gizmos,
-    math::bounding::{Aabb2d, BoundingCircle, BoundingVolume, IntersectsVolume},
-    prelude::*,
-    scene::ron::de,
-    utils::warn,
-    window::PrimaryWindow,
-};
+use bevy::{prelude::*, window::PrimaryWindow};
 use components::{DynamicObject, Force, Shape, SpringConstraint, StaticObject};
 use ops::{atan2, cos, sin};
 
