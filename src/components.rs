@@ -58,6 +58,12 @@ impl Shape {
         }
     }
 }
+#[derive(Debug, Component)]
+pub struct SpringConstraint {
+    pub other: Entity,
+    pub strength: f32,
+    pub length: f32,
+}
 
 #[derive(Debug, Component)]
 pub struct DynamicObject {
